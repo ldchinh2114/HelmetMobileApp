@@ -9,9 +9,9 @@ class _BenefitItem {
 }
 
 const List<_BenefitItem> _benefits = [
-  _BenefitItem(icon: Icons.verified, label: 'Chính hãng\n100%'),
-  _BenefitItem(icon: Icons.local_shipping, label: 'Freeship\ntoàn quốc'),
-  _BenefitItem(icon: Icons.miscellaneous_services, label: 'Bảo hành\nchính hãng'),
+  _BenefitItem(icon: Icons.verified_outlined, label: 'Chính hãng\n100%'),
+  _BenefitItem(icon: Icons.local_shipping_outlined, label: 'Freeship\ntoàn quốc'),
+  _BenefitItem(icon: Icons.build_outlined, label: 'Bảo hành\n12 tháng'),
   _BenefitItem(icon: Icons.swap_horiz, label: 'Đổi trả\n7 ngày'),
 ];
 
@@ -21,10 +21,25 @@ class ServiceBenefits extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: _benefits.map((item) => _BenefitCard(item: item)).toList(),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.xl,
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < _benefits.length; i++) ...[
+              if (i > 0)
+                const VerticalDivider(
+                  width: AppSpacing.lg,
+                  thickness: 1,
+                  color: AppColors.hairline,
+                ),
+              Expanded(child: _BenefitCard(item: _benefits[i])),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -38,20 +53,17 @@ class _BenefitCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Icon(item.icon, color: AppColors.primary, size: 22),
-        ),
-        const SizedBox(height: 6),
+        Icon(item.icon, color: AppColors.primary, size: 22),
+        const SizedBox(height: AppSpacing.sm),
         Text(
           item.label,
-          style: AppTextStyles.benefitText,
+          style: AppTextStyles.meta.copyWith(
+            fontSize: 11,
+            height: 1.35,
+            color: AppColors.ink,
+          ),
           textAlign: TextAlign.center,
         ),
       ],

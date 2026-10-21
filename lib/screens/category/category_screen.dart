@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_theme.dart';
 import '../../providers/filter_provider.dart';
-import '../../providers/search_provider.dart';
 import '../../providers/home_provider.dart';
+import '../../providers/search_provider.dart';
+import '../../widgets/common/classic_ui.dart';
 import '../home/widgets/product_card.dart';
 import 'widgets/filter_sheet.dart';
 
@@ -26,22 +27,25 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.white,
+        backgroundColor: AppColors.background,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-        surfaceTintColor: AppColors.white,
+        scrolledUnderElevation: 0,
         title: const Text('Danh mục', style: AppTextStyles.sectionTitle),
         centerTitle: true,
         actions: [
           Stack(
+            clipBehavior: Clip.none,
             children: [
               IconButton(
-                icon: const Icon(Icons.tune, color: AppColors.black, size: 24),
+                icon: const Icon(Icons.tune, color: AppColors.ink, size: 21),
+                tooltip: 'Bộ lọc',
                 onPressed: () => _showFilterSheet(context),
               ),
               if (filterNotifier.activeFilterCount > 0)
                 Positioned(
-                  right: 8,
-                  top: 6,
+                  right: 6,
+                  top: 8,
                   child: Container(
                     width: 16,
                     height: 16,
@@ -52,56 +56,76 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
                     child: Center(
                       child: Text(
                         '${filterNotifier.activeFilterCount}',
-                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                        style: AppTextStyles.badgeCount,
                       ),
                     ),
                   ),
                 ),
             ],
           ),
+          const SizedBox(width: AppSpacing.sm),
         ],
+        shape: const Border(bottom: AppBorders.hairline),
       ),
       body: Column(
         children: [
           // Category chips
           SizedBox(
-            height: 48,
+            height: 56,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.md,
+              ),
               children: [
-                _CategoryChip(
+                ClassicChoiceChip(
                   label: 'Tất cả',
                   isSelected: filter.categoryId == null,
                   onTap: () => filterNotifier.updateCategory(null),
                 ),
-                ...categories.map((cat) => _CategoryChip(
-                  label: cat.name,
-                  isSelected: filter.categoryId == cat.id,
-                  onTap: () => filterNotifier.updateCategory(cat.id),
-                )),
+                const SizedBox(width: AppSpacing.sm),
+                ...categories.expand((cat) => [
+                  ClassicChoiceChip(
+                    label: cat.name,
+                    isSelected: filter.categoryId == cat.id,
+                    onTap: () => filterNotifier.updateCategory(cat.id),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                ]),
               ],
             ),
           ),
+          const Hairline(),
 
-          // Sort + Clear filter
+          // Sort + clear
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.md,
+              AppSpacing.lg,
+              AppSpacing.md,
+            ),
             child: Row(
               children: [
-                // Sort dropdown
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.xs + 2,
+                  ),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.lightGray.withValues(alpha: 0.5)),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: AppColors.hairlineStrong),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: filter.sortBy,
                       isDense: true,
-                      icon: const Icon(Icons.arrow_drop_down, size: 18),
-                      style: const TextStyle(fontSize: 13, color: AppColors.darkGray),
+                      icon: const Icon(Icons.expand_more, size: 16),
+                      style: AppTextStyles.meta.copyWith(
+                        fontSize: 12.5,
+                        color: AppColors.ink,
+                      ),
                       items: FilterCriteria.sortOptions.map((s) => DropdownMenuItem(
                         value: s,
                         child: Text(FilterCriteria.sortLabels[s]!),
@@ -116,66 +140,70 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
                 if (filter.hasActiveFilter)
                   GestureDetector(
                     onTap: () => filterNotifier.clearAll(),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.close, size: 14, color: AppColors.gray),
-                        SizedBox(width: 4),
-                        Text('Xóa bộ lọc', style: TextStyle(fontSize: 12, color: AppColors.gray)),
+                        const Icon(Icons.close, size: 13, color: AppColors.primary),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          'Xóa bộ lọc',
+                          style: AppTextStyles.meta.copyWith(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
               ],
             ),
           ),
-
-          const SizedBox(height: AppSpacing.sm),
+          const Hairline(),
 
           // Product grid
           Expanded(
             child: productsAsync.when(
               data: (products) {
                 if (products.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[300]),
-                        const SizedBox(height: AppSpacing.md),
-                        const Text('Không có sản phẩm phù hợp', style: AppTextStyles.productName),
-                        const SizedBox(height: AppSpacing.sm),
-                        ElevatedButton(
-                          onPressed: () => filterNotifier.clearAll(),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Xóa bộ lọc'),
-                        ),
-                      ],
-                    ),
+                  return ClassicEmptyState(
+                    icon: Icons.inventory_2_outlined,
+                    title: 'Không có sản phẩm phù hợp',
+                    message: 'Hãy nới lỏng bộ lọc để xem thêm lựa chọn.',
+                    actionLabel: 'Xóa bộ lọc',
+                    onAction: () => filterNotifier.clearAll(),
                   );
                 }
                 return GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   itemCount: products.length,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.68,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
+                    childAspectRatio: 0.63,
+                    crossAxisSpacing: AppSpacing.md,
+                    mainAxisSpacing: AppSpacing.md,
                   ),
                   itemBuilder: (context, index) {
                     final product = products[index];
                     return ProductCard(
                       product: product,
                       onTap: () => context.push('/product/${product.id}'),
-                      onFavoriteTap: () {},
                     );
                   },
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-              error: (e, _) => Center(child: Text('Lỗi: $e')),
+              loading: () => const Center(
+                child: SizedBox(
+                  width: 26,
+                  height: 26,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+              error: (e, _) => ClassicEmptyState(
+                icon: Icons.error_outline,
+                title: 'Lỗi tải dữ liệu',
+                message: '$e',
+                actionLabel: 'Thử lại',
+                onAction: () => ref.invalidate(filteredProductsProvider),
+              ),
             ),
           ),
         ],
@@ -184,51 +212,12 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
   }
 
   void _showFilterSheet(BuildContext context) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      barrierColor: AppColors.ink.withValues(alpha: 0.45),
       builder: (_) => const FilterSheet(),
-    );
-  }
-}
-
-class _CategoryChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _CategoryChip({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppRadius.xxl),
-            border: Border.all(
-              color: isSelected ? AppColors.primary : AppColors.lightGray,
-            ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: isSelected ? Colors.white : AppColors.darkGray,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

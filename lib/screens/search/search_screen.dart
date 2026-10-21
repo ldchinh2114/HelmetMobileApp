@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_theme.dart';
 import '../../providers/search_provider.dart';
+import '../../widgets/common/classic_ui.dart';
 import '../home/widgets/product_card.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -19,7 +20,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    _focusNode.requestFocus();
+    Future<void>.delayed(const Duration(milliseconds: 120), () {
+      if (mounted) _focusNode.requestFocus();
+    });
   }
 
   @override
@@ -36,61 +39,90 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.white,
+        backgroundColor: AppColors.background,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-        surfaceTintColor: AppColors.white,
-        title: Container(
-          height: 40,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(AppRadius.xxl),
-          ),
-          child: TextField(
-            controller: _searchController,
-            focusNode: _focusNode,
-            onChanged: (value) => ref.read(searchProvider.notifier).updateQuery(value),
-            decoration: const InputDecoration(
-              hintText: 'Tìm kiếm mũ bảo hiểm...',
-              hintStyle: AppTextStyles.searchHint,
-              prefixIcon: Icon(Icons.search, color: AppColors.gray, size: 22),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+        scrolledUnderElevation: 0,
+        automaticallyImplyLeading: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, size: 20),
+          onPressed: () => context.pop(),
+        ),
+        titleSpacing: 0,
+        title: Padding(
+          padding: const EdgeInsets.only(right: AppSpacing.md),
+          child: Container(
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppColors.paper,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.hairline),
+            ),
+            child: TextField(
+              controller: _searchController,
+              focusNode: _focusNode,
+              onChanged: (value) =>
+                  ref.read(searchProvider.notifier).updateQuery(value),
+              style: AppTextStyles.searchText,
+              decoration: const InputDecoration(
+                hintText: 'Tìm kiếm mũ bảo hiểm...',
+                hintStyle: AppTextStyles.searchHint,
+                prefixIcon: Icon(Icons.search, color: AppColors.inkSoft, size: 19),
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+              ),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => context.pop(),
-            child: const Text('Hủy', style: TextStyle(color: AppColors.darkGray, fontSize: 14)),
+            child: const Text('Hủy'),
           ),
+          const SizedBox(width: AppSpacing.sm),
         ],
+        shape: const Border(bottom: AppBorders.hairline),
       ),
       body: _buildBody(searchState),
     );
   }
 
   Widget _buildBody(SearchState searchState) {
-    // Initial state - show suggestions and history
     if (!searchState.hasSearched && searchState.query.isEmpty) {
       return _buildInitial(searchState);
     }
 
-    // Loading
     if (searchState.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return const Center(
+        child: SizedBox(
+          width: 26,
+          height: 26,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
     }
 
-    // Has results
     if (searchState.results.isNotEmpty) {
       return _buildResults(searchState);
     }
 
-    // Has searched but no results
     if (searchState.hasSearched && searchState.results.isEmpty) {
-      return _buildEmptyResults(searchState);
+      return ClassicEmptyState(
+        icon: Icons.search_off,
+        title: 'Không tìm thấy sản phẩm',
+        message: 'Không có kết quả cho "${searchState.query}". '
+            'Thử một từ khóa khác hoặc xem danh mục sản phẩm.',
+        actionLabel: 'Xem danh mục',
+        onAction: () {
+          context.pop();
+          context.go('/category');
+        },
+      );
     }
 
-    // Suggestions while typing
     if (searchState.query.isNotEmpty && searchState.suggestions.isNotEmpty) {
       return _buildSuggestions(searchState);
     }
@@ -99,51 +131,65 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Widget _buildInitial(SearchState searchState) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Suggestions
-          const Text('Gợi ý tìm kiếm', style: AppTextStyles.productName),
-          const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: ['Fullface', '3/4', 'Giá rẻ', 'Carbon', 'Trẻ em', 'HELMO'].map((s) {
-              return ActionChip(
-                label: Text(s, style: const TextStyle(color: Colors.white, fontSize: 13)),
-                backgroundColor: AppColors.primary.withValues(alpha: 0.8),
-                onPressed: () {
-                  _searchController.text = s;
-                  ref.read(searchProvider.notifier).selectSuggestion(s);
-                },
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: AppSpacing.xl),
+    const suggestions = [
+      'Fullface',
+      '3/4',
+      'Giá rẻ',
+      'Carbon',
+      'Trẻ em',
+      'HELMO',
+    ];
 
-          // History
-          if (searchState.history.isNotEmpty) ...[
-            const Text('Lịch sử tìm kiếm', style: AppTextStyles.productName),
-            const SizedBox(height: AppSpacing.sm),
-            ...searchState.history.map((h) => ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.history, size: 20, color: AppColors.gray),
-              title: Text(h, style: const TextStyle(fontSize: 14, color: AppColors.darkGray)),
-              trailing: GestureDetector(
-                onTap: () => ref.read(searchProvider.notifier).removeHistoryItem(h),
-                child: const Icon(Icons.close, size: 16, color: AppColors.lightGray),
-              ),
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      children: [
+        const Eyebrow('Gợi ý tìm kiếm'),
+        const SizedBox(height: AppSpacing.md),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: suggestions.map((s) {
+            return ClassicChoiceChip(
+              label: s,
+              isSelected: false,
               onTap: () {
-                _searchController.text = h;
-                ref.read(searchProvider.notifier).selectSuggestion(h);
+                _searchController.text = s;
+                ref.read(searchProvider.notifier).selectSuggestion(s);
               },
-            )),
-          ],
+            );
+          }).toList(),
+        ),
+        if (searchState.history.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xl),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Eyebrow('Lịch sử tìm kiếm'),
+              GestureDetector(
+                onTap: () => ref.read(searchProvider.notifier).clearSearch(),
+                child: Text(
+                  'Xóa tất cả',
+                  style: AppTextStyles.meta.copyWith(
+                    color: AppColors.primary,
+                    fontSize: 11.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          const Hairline(),
+          ...searchState.history.map((h) => _HistoryRow(
+                label: h,
+                onTap: () {
+                  _searchController.text = h;
+                  ref.read(searchProvider.notifier).selectSuggestion(h);
+                },
+                onRemove: () =>
+                    ref.read(searchProvider.notifier).removeHistoryItem(h),
+              )),
         ],
-      ),
+      ],
     );
   }
 
@@ -151,16 +197,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return ListView.separated(
       padding: const EdgeInsets.all(AppSpacing.lg),
       itemCount: searchState.suggestions.length,
-      separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF0F0F0)),
+      separatorBuilder: (_, _) => const Hairline(),
       itemBuilder: (context, index) {
         final suggestion = searchState.suggestions[index];
-        return ListTile(
-          dense: true,
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.search, size: 20, color: AppColors.gray),
-          title: Text(suggestion,
-            style: const TextStyle(fontSize: 14),
-          ),
+        return _HistoryRow(
+          label: suggestion,
+          icon: Icons.search,
           onTap: () {
             _searchController.text = suggestion;
             ref.read(searchProvider.notifier).selectSuggestion(suggestion);
@@ -175,12 +217,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
-          child: Text(
-            'Tìm thấy ${searchState.results.length} sản phẩm cho "${searchState.query}"',
-            style: AppTextStyles.soldCount.copyWith(fontSize: 13),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.lg,
+            AppSpacing.lg,
+            AppSpacing.md,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Tìm thấy ${searchState.results.length} sản phẩm cho '
+                  '"${searchState.query}"',
+                  style: AppTextStyles.meta.copyWith(fontSize: 12.5),
+                ),
+              ),
+              const GoldRule(width: 20),
+            ],
           ),
         ),
+        const Hairline(indent: AppSpacing.lg),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -188,16 +244,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               itemCount: searchState.results.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                childAspectRatio: 0.68,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
+                childAspectRatio: 0.63,
+                crossAxisSpacing: AppSpacing.md,
+                mainAxisSpacing: AppSpacing.md,
               ),
               itemBuilder: (context, index) {
                 final product = searchState.results[index];
                 return ProductCard(
                   product: product,
                   onTap: () => context.push('/product/${product.id}'),
-                  onFavoriteTap: () {},
                 );
               },
             ),
@@ -206,29 +261,44 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ],
     );
   }
+}
 
-  Widget _buildEmptyResults(SearchState searchState) {
-    return Center(
+class _HistoryRow extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final VoidCallback? onRemove;
+
+  const _HistoryRow({
+    required this.label,
+    required this.onTap,
+    this.icon = Icons.history,
+    this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Row(
           children: [
-            Icon(Icons.search_off, size: 64, color: Colors.grey[300]),
-            const SizedBox(height: AppSpacing.lg),
-            const Text('Không tìm thấy sản phẩm', style: AppTextStyles.sectionTitle),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Không có kết quả cho "${searchState.query}"',
-              style: AppTextStyles.soldCount,
-              textAlign: TextAlign.center,
+            Icon(icon, size: 17, color: AppColors.inkFaint),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                label,
+                style: AppTextStyles.body.copyWith(fontSize: 13.5),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            const Text(
-              'Gợi ý: Kiểm tra từ khóa hoặc xem danh mục sản phẩm',
-              style: AppTextStyles.soldCount,
-              textAlign: TextAlign.center,
-            ),
+            if (onRemove != null)
+              GestureDetector(
+                onTap: onRemove,
+                child: const Icon(Icons.close, size: 15, color: AppColors.inkFaint),
+              ),
           ],
         ),
       ),

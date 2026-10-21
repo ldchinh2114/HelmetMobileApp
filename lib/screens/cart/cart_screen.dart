@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_theme.dart';
 import '../../providers/cart_provider.dart';
-import '../../providers/home_provider.dart';
+import '../../utils/formatters.dart';
+import '../../widgets/common/classic_ui.dart';
 import 'widgets/cart_item_card.dart';
 
 class CartScreen extends ConsumerWidget {
@@ -16,169 +17,127 @@ class CartScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.white,
+        backgroundColor: AppColors.background,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-        surfaceTintColor: AppColors.white,
+        scrolledUnderElevation: 0,
         title: Text(
-          'Giỏ hàng${cartState.itemCount > 0 ? ' (${cartState.itemCount})' : ''}',
-          style: AppTextStyles.sectionTitle.copyWith(fontSize: 18),
+          cartState.itemCount > 0
+              ? 'Giỏ hàng · ${cartState.itemCount}'
+              : 'Giỏ hàng',
+          style: AppTextStyles.sectionTitle,
         ),
         centerTitle: true,
         actions: cartState.itemCount > 0
             ? [
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, color: AppColors.gray, size: 22),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Xóa giỏ hàng'),
-                        content: const Text('Bạn có chắc muốn xóa tất cả sản phẩm?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Hủy'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              ref.read(cartProvider.notifier).clearCart();
-                              Navigator.pop(ctx);
-                            },
-                            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-                            child: const Text('Xóa tất cả'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  tooltip: 'Xóa giỏ hàng',
+                  onPressed: () => _confirmClear(context, ref),
                 ),
                 const SizedBox(width: AppSpacing.sm),
               ]
             : null,
+        shape: const Border(bottom: AppBorders.hairline),
       ),
-      body: cartState.itemCount == 0 ? _buildEmpty(context) : _buildCart(context, ref, cartState),
+      body: cartState.itemCount == 0
+          ? _buildEmpty(context)
+          : _buildCart(context, ref, cartState),
       bottomNavigationBar: cartState.itemCount > 0
-          ? _buildBottomBar(context, ref, cartState)
+          ? _buildBottomBar(context, cartState)
           : null,
     );
   }
 
-  Widget _buildEmpty(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.shopping_cart_outlined, size: 80, color: Colors.grey[300]),
-            const SizedBox(height: AppSpacing.lg),
-            const Text(
-              'Giỏ hàng trống',
-              style: AppTextStyles.sectionTitle,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            const Text(
-              'Hãy thêm sản phẩm vào giỏ hàng',
-              style: AppTextStyles.soldCount,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            ElevatedButton(
-              onPressed: () => context.go('/home'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-              ),
-              child: const Text('Mua sắm ngay', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-            ),
-          ],
-        ),
+  Future<void> _confirmClear(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa giỏ hàng'),
+        content: const Text('Bạn có chắc muốn xóa tất cả sản phẩm?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Xóa tất cả'),
+          ),
+        ],
       ),
+    );
+    if (confirmed == true) {
+      ref.read(cartProvider.notifier).clearCart();
+    }
+  }
+
+  Widget _buildEmpty(BuildContext context) {
+    return ClassicEmptyState(
+      icon: Icons.shopping_basket_outlined,
+      title: 'Giỏ hàng trống',
+      message: 'Hãy chọn một chiếc mũ và thêm vào giỏ hàng.',
+      actionLabel: 'Mua sắm ngay',
+      onAction: () => context.go('/home'),
     );
   }
 
   Widget _buildCart(BuildContext context, WidgetRef ref, CartState cartState) {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            itemCount: cartState.items.length,
-            separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-            itemBuilder: (context, index) {
-              final item = cartState.items[index];
-              return CartItemCard(
-                item: item,
-                onIncrement: () => ref.read(cartProvider.notifier).incrementQuantity(item.id),
-                onDecrement: () => ref.read(cartProvider.notifier).decrementQuantity(item.id),
-                onRemove: () => ref.read(cartProvider.notifier).removeItem(item.id),
-              );
-            },
-          ),
-        ),
-      ],
+    return ListView.separated(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      itemCount: cartState.items.length,
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+      itemBuilder: (context, index) {
+        final item = cartState.items[index];
+        return CartItemCard(
+          item: item,
+          onIncrement: () =>
+              ref.read(cartProvider.notifier).incrementQuantity(item.id),
+          onDecrement: () =>
+              ref.read(cartProvider.notifier).decrementQuantity(item.id),
+          onRemove: () => ref.read(cartProvider.notifier).removeItem(item.id),
+        );
+      },
     );
   }
 
-  Widget _buildBottomBar(BuildContext context, WidgetRef ref, CartState cartState) {
+  Widget _buildBottomBar(BuildContext context, CartState cartState) {
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
+      decoration: const BoxDecoration(
+        color: AppColors.paper,
+        border: Border(top: AppBorders.hairline),
       ),
       padding: EdgeInsets.only(
         left: AppSpacing.lg,
         right: AppSpacing.lg,
         top: AppSpacing.md,
-        bottom: MediaQuery.of(context).padding.bottom + AppSpacing.sm,
+        bottom: MediaQuery.of(context).padding.bottom + AppSpacing.md,
       ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            // Total
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Tạm tính:', style: AppTextStyles.soldCount),
-                  const SizedBox(height: 2),
-                  Text(
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Tạm tính', style: AppTextStyles.meta.copyWith(fontSize: 11.5)),
+                const SizedBox(height: 2),
+                CrossFade(
+                  child: Text(
                     formatCurrency(cartState.subtotal),
-                    style: AppTextStyles.price.copyWith(fontSize: 20),
+                    key: ValueKey(cartState.subtotal),
+                    style: AppTextStyles.price.copyWith(fontSize: 19),
                   ),
-                ],
-              ),
-            ),
-            // Checkout button
-            ElevatedButton(
-              onPressed: () => context.push('/checkout'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                elevation: 0,
-              ),
-              child: const Text(
-                'Thanh toán',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+          FilledButton(
+            onPressed: () => context.push('/checkout'),
+            child: const Text('THANH TOÁN'),
+          ),
+        ],
       ),
     );
   }

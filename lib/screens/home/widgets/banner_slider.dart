@@ -1,7 +1,10 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+import '../../../config/app_motion.dart';
 import '../../../config/app_theme.dart';
 import '../../../models/product.dart';
+import '../../../widgets/common/product_artwork.dart';
 
 class BannerSlider extends StatefulWidget {
   final List<BannerItem> banners;
@@ -20,13 +23,13 @@ class _BannerSliderState extends State<BannerSlider> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
-      if (widget.banners.isEmpty) return;
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || widget.banners.isEmpty) return;
       final nextPage = (_currentPage + 1) % widget.banners.length;
       _pageController.animateToPage(
         nextPage,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
+        duration: AppMotion.slow,
+        curve: AppMotion.emphasized,
       );
     });
   }
@@ -43,23 +46,28 @@ class _BannerSliderState extends State<BannerSlider> {
     if (widget.banners.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      padding: const EdgeInsets.only(top: AppSpacing.lg),
       child: Column(
         children: [
           SizedBox(
-            height: 170,
+            height: 208,
             child: PageView.builder(
               controller: _pageController,
               onPageChanged: (index) => setState(() => _currentPage = index),
               itemCount: widget.banners.length,
               itemBuilder: (context, index) {
-                final banner = widget.banners[index];
-                return _BannerCard(banner: banner);
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: _BannerCard(
+                    banner: widget.banners[index],
+                    style: HelmetStyle.values[index % HelmetStyle.values.length],
+                  ),
+                );
               },
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          _DotsIndicator(
+          const SizedBox(height: AppSpacing.md),
+          _Indicator(
             count: widget.banners.length,
             currentIndex: _currentPage,
           ),
@@ -71,83 +79,95 @@ class _BannerSliderState extends State<BannerSlider> {
 
 class _BannerCard extends StatelessWidget {
   final BannerItem banner;
+  final HelmetStyle style;
 
-  const _BannerCard({required this.banner});
+  const _BannerCard({required this.banner, required this.style});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(right: 0),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        color: Colors.grey[900],
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2E2823), Color(0xFF4A3226), Color(0xFF5E1826)],
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
-        fit: StackFit.expand,
         children: [
-          // Placeholder for banner image - using a gradient + icon as fallback
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF1A1A2E),
-                  const Color(0xFF16213E),
-                  Colors.red.shade900,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          // Decorative helmet mark
+          Positioned(
+            right: -18,
+            top: 16,
+            child: SizedBox(
+              width: 180,
+              height: 180,
+              child: Opacity(
+                opacity: 0.22,
+                child: HelmetMark(
+                  style: style,
+                  color: AppColors.gold,
+                  strokeWidth: 1.4,
+                ),
               ),
             ),
-            child: const Center(
-              child: Icon(Icons.shield, size: 80, color: Colors.white24),
-            ),
           ),
-          // Overlay gradient
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.black.withValues(alpha: 0.7),
-                  Colors.black.withValues(alpha: 0.1),
-                ],
-                begin: Alignment.bottomLeft,
-                end: Alignment.topRight,
+          // Gold frame
+          Positioned.fill(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: AppColors.gold.withValues(alpha: 0.28),
+                  ),
+                ),
               ),
             ),
           ),
           // Content
-          Positioned(
-            left: AppSpacing.lg,
-            bottom: AppSpacing.lg,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xl,
+              AppSpacing.lg,
+              AppSpacing.xl,
+              AppSpacing.lg,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Text(
+                  'HELMO COLLECTION',
+                  style: AppTextStyles.eyebrow.copyWith(color: AppColors.gold),
+                ),
+                const SizedBox(height: AppSpacing.sm),
                 if (banner.title != null)
                   Text(
                     banner.title!,
-                    style: AppTextStyles.promotionTitle.copyWith(fontSize: 20),
+                    style: AppTextStyles.displayMedium.copyWith(
+                      color: Colors.white,
+                      fontSize: 23,
+                    ),
                   ),
                 if (banner.subtitle != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    banner.subtitle!,
-                    style: AppTextStyles.promotionSubtitle,
+                  const SizedBox(height: AppSpacing.xs + 2),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 220),
+                    child: Text(
+                      banner.subtitle!,
+                      style: AppTextStyles.bodyMuted.copyWith(
+                        color: Colors.white.withValues(alpha: 0.75),
+                        fontSize: 12.5,
+                      ),
+                    ),
                   ),
                 ],
                 if (banner.buttonText != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(AppRadius.full),
-                    ),
-                    child: Text(
-                      banner.buttonText!,
-                      style: AppTextStyles.bannerButton,
-                    ),
-                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  _GoldButton(label: banner.buttonText!),
                 ],
               ],
             ),
@@ -158,25 +178,52 @@ class _BannerCard extends StatelessWidget {
   }
 }
 
-class _DotsIndicator extends StatelessWidget {
+class _GoldButton extends StatelessWidget {
+  final String label;
+
+  const _GoldButton({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 9),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.gold),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: AppTextStyles.buttonSmall.copyWith(
+          color: AppColors.gold,
+          fontSize: 10.5,
+          letterSpacing: 1.4,
+        ),
+      ),
+    );
+  }
+}
+
+/// Thin segmented rule instead of dots.
+class _Indicator extends StatelessWidget {
   final int count;
   final int currentIndex;
 
-  const _DotsIndicator({required this.count, required this.currentIndex});
+  const _Indicator({required this.count, required this.currentIndex});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(count, (index) {
+        final isActive = currentIndex == index;
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
+          duration: AppMotion.quick,
+          curve: AppMotion.emphasized,
           margin: const EdgeInsets.symmetric(horizontal: 3),
-          width: currentIndex == index ? 20 : 8,
-          height: 8,
+          width: isActive ? 26 : 12,
+          height: 2,
           decoration: BoxDecoration(
-            color: currentIndex == index ? AppColors.primary : AppColors.lightGray,
-            borderRadius: BorderRadius.circular(4),
+            color: isActive ? AppColors.gold : AppColors.hairlineStrong,
           ),
         );
       }),

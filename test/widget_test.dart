@@ -1,30 +1,30 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Basic smoke tests for the HELMO shell.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:sellingproduct/main.dart';
+import 'package:sellingproduct/config/app_theme.dart';
+import 'package:sellingproduct/utils/formatters.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('app boots into the router', (WidgetTester tester) async {
+    await tester.pumpWidget(const HelmoApp());
+    await tester.pump(const Duration(milliseconds: 100));
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.byType(MaterialApp), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Tear the tree down so the splash timer is cancelled.
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('currency is formatted the Vietnamese way', () {
+    expect(formatCurrency(1890000), '1.890.000₫');
+    expect(formatCurrency(550000), '550.000₫');
+  });
+
+  test('theme exposes the classic light palette', () {
+    final theme = buildAppTheme();
+    expect(theme.brightness, Brightness.light);
+    expect(theme.colorScheme.primary, AppColors.primary);
   });
 }

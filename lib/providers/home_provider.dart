@@ -139,7 +139,4 @@ final List<Product> mockFeaturedProducts = [
   ),
 ];
 
-// Format currency
-String formatCurrency(double amount) {
-  return '${amount ~/ 1000}.${(amount % 1000).toString().padLeft(3, '0')}đ';
-}
+// Format currency — see lib/utils/formatters.dart

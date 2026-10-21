@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../config/app_theme.dart';
+import '../../../widgets/common/classic_ui.dart';
+import 'section_header.dart';
 
 class PromotionCards extends StatelessWidget {
   const PromotionCards({super.key});
@@ -9,27 +11,37 @@ class PromotionCards extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
-        AppSpacing.md,
+        AppSpacing.xl,
         AppSpacing.lg,
         AppSpacing.xl,
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const SectionHeader(
+            title: 'Ưu đãi dành riêng cho bạn',
+            eyebrow: 'Thành viên',
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          const Row(
             children: [
-              Expanded(child: _PromotionCard(
-                icon: Icons.local_offer,
-                title: 'Ưu đãi hôm nay',
-                subtitle: 'Giảm đến 30%',
-                gradientColors: const [Color(0xFFE53935), Color(0xFFC62828)],
-              )),
-              const SizedBox(width: 12),
-              Expanded(child: _PromotionCard(
-                icon: Icons.card_giftcard,
-                title: 'Thành viên HELMO',
-                subtitle: 'Tích điểm đổi quà',
-                gradientColors: const [Color(0xFF212121), Color(0xFF424242)],
-              )),
+              Expanded(
+                child: _PromotionCard(
+                  icon: Icons.local_offer_outlined,
+                  title: 'Ưu đãi hôm nay',
+                  subtitle: 'Giảm đến 30%',
+                  accent: AppColors.primary,
+                ),
+              ),
+              SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: _PromotionCard(
+                  icon: Icons.card_giftcard_outlined,
+                  title: 'Thành viên HELMO',
+                  subtitle: 'Tích điểm đổi quà',
+                  accent: AppColors.gold,
+                ),
+              ),
             ],
           ),
         ],
@@ -42,40 +54,49 @@ class _PromotionCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  final List<Color> gradientColors;
+  final Color accent;
 
   const _PromotionCard({
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.gradientColors,
+    required this.accent,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 100,
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: gradientColors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        color: AppColors.paper,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.hairline),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 28),
-            const SizedBox(height: 8),
-            Text(title, style: AppTextStyles.promotionTitle.copyWith(fontSize: 14)),
-            const SizedBox(height: 2),
-            Text(subtitle, style: AppTextStyles.promotionSubtitle.copyWith(fontSize: 11)),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Icon(icon, color: accent, size: 19),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            title,
+            style: AppTextStyles.productName.copyWith(fontSize: 14),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(subtitle, style: AppTextStyles.meta.copyWith(fontSize: 11.5)),
+          const SizedBox(height: AppSpacing.md),
+          const GoldRule(width: 22),
+        ],
       ),
     );
   }

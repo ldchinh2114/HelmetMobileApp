@@ -1,5 +1,7 @@
 class AppConfig {
   static const String appName = 'HELMO';
+  /// Design revision — bumped whenever the visual language changes.
+  static const String designRevision = 'classic-2';
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: 'https://api.helmo.com/v1',

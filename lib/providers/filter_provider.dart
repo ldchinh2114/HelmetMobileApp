@@ -87,15 +87,24 @@ class FilterNotifier extends Notifier<FilterCriteria> {
   FilterCriteria build() => const FilterCriteria();
 
   void updateCategory(String? categoryId) {
-    state = state.copyWith(categoryId: categoryId);
+    state = state.copyWith(
+      categoryId: categoryId,
+      clearCategoryId: categoryId == null,
+    );
   }
 
   void updateBrand(String? brand) {
-    state = state.copyWith(brand: brand);
+    state = state.copyWith(
+      brand: brand,
+      clearBrand: brand == null,
+    );
   }
 
   void updateColor(String? color) {
-    state = state.copyWith(color: color);
+    state = state.copyWith(
+      color: color,
+      clearColor: color == null,
+    );
   }
 
   void updatePriceRange(double? min, double? max) {

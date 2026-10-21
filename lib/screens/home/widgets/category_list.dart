@@ -1,24 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../config/app_theme.dart';
 import '../../../models/product.dart';
+import '../../../providers/filter_provider.dart';
 
-class CategoryList extends StatelessWidget {
+class CategoryList extends ConsumerWidget {
   final List<ProductCategory> categories;
 
   const CategoryList({super.key, required this.categories});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(
-      height: 115,
+      height: 108,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         itemCount: categories.length,
-        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
+        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.lg),
         itemBuilder: (context, index) {
           final category = categories[index];
-          return _CategoryCard(category: category);
+          return _CategoryCard(
+            category: category,
+            onTap: () {
+              ref.read(filterProvider.notifier).updateCategory(category.id);
+              context.go('/category');
+            },
+          );
         },
       ),
     );
@@ -27,48 +36,42 @@ class CategoryList extends StatelessWidget {
 
 class _CategoryCard extends StatelessWidget {
   final ProductCategory category;
+  final VoidCallback onTap;
 
-  const _CategoryCard({required this.category});
+  const _CategoryCard({required this.category, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {},
-      child: Container(
-        width: 90,
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 76,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppRadius.md),
+              width: 68,
+              height: 68,
+              decoration: const BoxDecoration(
+                color: AppColors.paper,
+                shape: BoxShape.circle,
+                border: Border.fromBorderSide(AppBorders.hairline),
               ),
               child: Center(
                 child: Icon(
-                  _getCategoryIcon(category.name),
+                  iconForCategory(category.name),
                   color: AppColors.primary,
-                  size: 28,
+                  size: 26,
                 ),
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               category.name,
-              style: AppTextStyles.categoryName,
+              style: AppTextStyles.meta.copyWith(
+                color: AppColors.ink,
+                fontSize: 11.5,
+              ),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -78,21 +81,22 @@ class _CategoryCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  IconData _getCategoryIcon(String name) {
-    switch (name.toLowerCase()) {
-      case 'fullface':
-        return Icons.shield;
-      case '3/4':
-        return Icons.motorcycle;
-      case '1/2':
-        return Icons.sports_esports;
-      case 'trẻ em':
-        return Icons.child_care;
-      case 'phượt':
-        return Icons.explore;
-      default:
-        return Icons.moped;
-    }
+/// Icons used across the catalogue for the helmet families.
+IconData iconForCategory(String name) {
+  switch (name.toLowerCase()) {
+    case 'fullface':
+      return Icons.sports_motorsports;
+    case '3/4':
+      return Icons.motorcycle;
+    case '1/2':
+      return Icons.sports_esports;
+    case 'trẻ em':
+      return Icons.child_care;
+    case 'phượt':
+      return Icons.landscape_outlined;
+    default:
+      return Icons.moped;
   }
 }

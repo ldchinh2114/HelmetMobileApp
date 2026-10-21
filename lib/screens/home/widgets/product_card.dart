@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../config/app_motion.dart';
 import '../../../config/app_theme.dart';
 import '../../../models/product.dart';
-import '../../../providers/home_provider.dart';
+import '../../../providers/wishlist_provider.dart';
+import '../../../utils/formatters.dart';
+import '../../../widgets/common/classic_ui.dart';
+import '../../../widgets/common/product_artwork.dart';
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends ConsumerWidget {
   final Product product;
   final VoidCallback? onTap;
   final VoidCallback? onFavoriteTap;
@@ -16,90 +21,66 @@ class ProductCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final wishlist = ref.watch(wishlistProvider);
+    final isFavorite = wishlist.contains(product.id);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: AppColors.paper,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.hairline),
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
+            // Artwork
             Expanded(
-              flex: 3,
+              flex: 5,
               child: Stack(
                 children: [
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEEEEEE),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(AppRadius.lg),
-                      ),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.shield,
-                        size: 48,
-                        color: Colors.grey[300],
-                      ),
+                  Positioned.fill(
+                    child: Hero(
+                      tag: 'product_${product.id}',
+                      child: ProductArtwork(product: product),
                     ),
                   ),
-                  // Favorite button
+                  // Wishlist
                   Positioned(
-                    top: 6,
-                    right: 6,
-                    child: GestureDetector(
-                      onTap: onFavoriteTap,
-                      child: Container(
-                        width: 30,
-                        height: 30,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          product.isFavorite
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          size: 16,
-                          color: product.isFavorite
-                              ? AppColors.primary
-                              : AppColors.gray,
-                        ),
-                      ),
+                    top: AppSpacing.xs,
+                    right: AppSpacing.xs,
+                    child: _HeartButton(
+                      isFavorite: isFavorite,
+                      onTap: () {
+                        ref.read(wishlistProvider.notifier).toggle(product.id);
+                        onFavoriteTap?.call();
+                      },
                     ),
                   ),
-                  // Discount badge
+                  // Discount
                   if (product.discountPercent != null)
                     Positioned(
-                      top: 6,
-                      left: 6,
+                      top: AppSpacing.sm,
+                      left: AppSpacing.sm,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
+                          horizontal: AppSpacing.sm,
+                          vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: AppColors.paper,
+                          border: Border.all(color: AppColors.primary),
                           borderRadius: BorderRadius.circular(AppRadius.sm),
                         ),
                         child: Text(
                           '-${product.discountPercent!.round()}%',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
+                          style: AppTextStyles.buttonSmall.copyWith(
+                            color: AppColors.primary,
+                            fontSize: 10,
+                            letterSpacing: 0.4,
                           ),
                         ),
                       ),
@@ -107,55 +88,71 @@ class ProductCard extends StatelessWidget {
                 ],
               ),
             ),
+
+            const Hairline(),
+
             // Info
             Expanded(
-              flex: 2,
+              flex: 4,
               child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.sm),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  AppSpacing.md,
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      product.name,
-                      style: AppTextStyles.productName,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    Expanded(
+                      child: Text(
+                        product.name,
+                        style: AppTextStyles.productName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.xs + 2),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
                           formatCurrency(product.price),
                           style: AppTextStyles.price,
                         ),
                         if (product.originalPrice != null) ...[
-                          const SizedBox(width: 4),
+                          const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
                               formatCurrency(product.originalPrice!),
                               style: AppTextStyles.originalPrice,
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ],
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.sm),
                     Row(
                       children: [
                         ...List.generate(5, (index) {
+                          final filled = index < product.rating.floor();
                           return Icon(
-                            index < product.rating.floor()
-                                ? Icons.star
-                                : Icons.star_border,
-                            size: 12,
-                            color: AppColors.starYellow,
+                            filled ? Icons.star : Icons.star_border,
+                            size: 11,
+                            color: filled ? AppColors.star : AppColors.inkFaint,
                           );
                         }),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Đã bán ${product.soldCount}',
-                          style: AppTextStyles.soldCount,
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            formatSoldCount(product.soldCount),
+                            style: AppTextStyles.meta.copyWith(fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
@@ -164,6 +161,38 @@ class ProductCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeartButton extends StatelessWidget {
+  final bool isFavorite;
+  final VoidCallback onTap;
+
+  const _HeartButton({required this.isFavorite, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.paper.withValues(alpha: 0.92),
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: AnimatedScale(
+            duration: AppMotion.quick,
+            curve: AppMotion.emphasized,
+            scale: isFavorite ? 1.12 : 1.0,
+            child: Icon(
+              isFavorite ? Icons.favorite : Icons.favorite_border,
+              size: 15,
+              color: isFavorite ? AppColors.primary : AppColors.inkSoft,
+            ),
+          ),
         ),
       ),
     );
